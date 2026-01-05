@@ -2,7 +2,16 @@ vim.g.mapleader = " "
 
 vim.o.number = true
 vim.o.relativenumber = true
+
 vim.o.wrap = false
+-- Enable wrap for specific file types
+vim.api.nvim_create_autocmd("FileType", {
+	pattern = { "markdown", "text", "tex" },
+	callback = function()
+		vim.opt_local.wrap = true
+		vim.opt_local.linebreak = true  -- Break at word boundaries
+	end,
+})
 
 vim.o.signcolumn = "yes"
 vim.o.winborder = "rounded"
@@ -20,6 +29,17 @@ vim.pack.add({
 	{ src="https://github.com/akinsho/toggleterm.nvim" },
 	{ src="https://github.com/lewis6991/gitsigns.nvim" },
 	{ src="https://github.com/tpope/vim-fugitive" },
+	{ 
+		src="https://github.com/iamcco/markdown-preview.nvim",
+		hooks = {
+			post_install = function()
+				vim.fn["mkdp#util#install"]()
+			end,
+			post_update = function()
+				vim.fn["mkdp#util#install"]()
+			end,
+		}
+	},
 })
 
 vim.cmd.colorscheme("kanagawa-wave")
@@ -151,6 +171,8 @@ vim.keymap.set("n", "<leader>pc", pack_clean)
 vim.keymap.set({"n", "v", "x"}, "<leader>y", '"+y<CR>')
 vim.keymap.set({"n", "v", "x"}, "<leader>d", '"+d<CR>')
 
+vim.keymap.set("n", "<leader>mp", ":MarkdownPreview<CR>", { desc = "Markdown preview" })
+
 -- For formatting, just in case I want it on for some reason
 -- vim.keymap.set("n", "<leader>lf", vim.lsp.buf.format)
 
@@ -165,6 +187,8 @@ vim.keymap.set("n", "<leader>tb", ":Gitsigns toggle_current_line_blame<CR>")
 vim.keymap.set("n", "<leader>e", ":Oil<CR>")
 
 vim.keymap.set("n", "<leader>f", ":Pick files<CR>")
-vim.keymap.set("n", "<leader>h", ":Pick help<CR>")
 vim.keymap.set("n", "<leader>g", ":Pick grep<CR>")
+
+-- Not sure if imma be using these, might remove em
+vim.keymap.set("n", "<leader>h", ":Pick help<CR>")
 vim.keymap.set("n", "<leader>b", ":Pick buffers<CR>")

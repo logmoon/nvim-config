@@ -13,7 +13,7 @@ vim.o.softtabstop = 4
 vim.o.tabstop = 4
 
 vim.pack.add({
-	{ src="https://github.com/folke/tokyonight.nvim" },
+	{ src="https://github.com/rebelot/kanagawa.nvim" },
 	{ src="https://github.com/neovim/nvim-lspconfig" },
 	{ src="https://github.com/nvim-mini/mini.nvim" },
 	{ src="https://github.com/stevearc/oil.nvim" },
@@ -22,9 +22,12 @@ vim.pack.add({
 	{ src="https://github.com/tpope/vim-fugitive" },
 })
 
+vim.cmd.colorscheme("kanagawa-wave")
+-- vim.cmd.colorscheme("kanagawa-dragon")
+
 require("gitsigns").setup({
 	signs = {
-		add          = { text = '│' },
+		add          = { text = '+' },
 		change       = { text = '│' },
 		delete       = { text = '_' },
 		topdelete    = { text = '‾' },
@@ -32,7 +35,7 @@ require("gitsigns").setup({
 		untracked    = { text = '┆' },
 	},
 	signs_staged = {
-		add          = { text = '│' },
+		add          = { text = '+' },
 		change       = { text = '│' },
 		delete       = { text = '_' },
 		topdelete    = { text = '‾' },
@@ -73,8 +76,6 @@ vim.diagnostic.config({
 	underline = false,
 	update_in_insert = false,
 })
-
-vim.cmd.colorscheme("tokyonight-night")
 
 local diagnostics_active = false
 local function toggle_diagnostics()
@@ -158,9 +159,8 @@ vim.keymap.set("n", "<leader>hs", ":Gitsigns stage_hunk<CR>")
 vim.keymap.set("n", "<leader>hr", ":Gitsigns reset_hunk<CR>")
 vim.keymap.set("n", "<leader>hS", ":Gitsigns stage_buffer<CR>")
 vim.keymap.set("n", "<leader>hR", ":Gitsigns reset_buffer<CR>")
-
 vim.keymap.set("n", "<leader>hp", ":Gitsigns preview_hunk<CR>")
-vim.keymap.set("n", "<leader>tb", ":Gitsigns preview_toggle_current_line_blame<CR>")
+vim.keymap.set("n", "<leader>tb", ":Gitsigns toggle_current_line_blame<CR>")
 
 vim.keymap.set("n", "<leader>e", ":Oil<CR>")
 

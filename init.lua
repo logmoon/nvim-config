@@ -28,10 +28,6 @@ vim.pack.add({
 	{ src="https://github.com/stevearc/oil.nvim" },
 	{ src="https://github.com/akinsho/toggleterm.nvim" },
 	{ src="https://github.com/lewis6991/gitsigns.nvim" },
-	{ src="https://github.com/tpope/vim-fugitive" },
-
-	--[[
-	-- Markdown preview, just in case I start needing to use it somewhere down the line
 	{ 
 		src="https://github.com/iamcco/markdown-preview.nvim",
 		hooks = {
@@ -43,7 +39,6 @@ vim.pack.add({
 			end,
 		}
 	},
-	--]]
 })
 
 vim.cmd.colorscheme("kanagawa-wave")
@@ -201,14 +196,25 @@ vim.keymap.set("n", "<leader>hs", ":Gitsigns stage_hunk<CR>")
 vim.keymap.set("n", "<leader>hr", ":Gitsigns reset_hunk<CR>")
 vim.keymap.set("n", "<leader>hS", ":Gitsigns stage_buffer<CR>")
 vim.keymap.set("n", "<leader>hR", ":Gitsigns reset_buffer<CR>")
-vim.keymap.set("n", "<leader>hp", ":Gitsigns preview_hunk<CR>")
-vim.keymap.set("n", "<leader>tb", ":Gitsigns toggle_current_line_blame<CR>")
+vim.keymap.set("n", "<leader>hp", ":Gitsigns preview_hunk_inline<CR>")
+vim.keymap.set("n", "]c", function()
+	if vim.wo.diff then
+		vim.cmd.normal({']c', bang = true})
+	else
+		require('gitsigns').nav_hunk('next')
+	end
+end, { desc = "Next hunk" })
+vim.keymap.set("n", "[c", function()
+	if vim.wo.diff then
+		vim.cmd.normal({'[c', bang = true})
+	else
+		require('gitsigns').nav_hunk('prev')
+	end
+end, { desc = "Previous hunk" })
 
 vim.keymap.set("n", "<leader>e", ":Oil<CR>")
 
 vim.keymap.set("n", "<leader>f", ":Pick files<CR>")
 vim.keymap.set("n", "<leader>g", ":Pick grep<CR>")
-
--- Not sure if imma be using these, might remove em
 vim.keymap.set("n", "<leader>h", ":Pick help<CR>")
 vim.keymap.set("n", "<leader>b", ":Pick buffers<CR>")

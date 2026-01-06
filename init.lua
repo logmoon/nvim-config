@@ -29,6 +29,9 @@ vim.pack.add({
 	{ src="https://github.com/akinsho/toggleterm.nvim" },
 	{ src="https://github.com/lewis6991/gitsigns.nvim" },
 	{ src="https://github.com/tpope/vim-fugitive" },
+
+	--[[
+	-- Markdown preview, just in case I start needing to use it somewhere down the line
 	{ 
 		src="https://github.com/iamcco/markdown-preview.nvim",
 		hooks = {
@@ -40,6 +43,7 @@ vim.pack.add({
 			end,
 		}
 	},
+	--]]
 })
 
 vim.cmd.colorscheme("kanagawa-wave")
@@ -74,6 +78,9 @@ require("mini.icons").setup()
 require("mini.pairs").setup()
 require("mini.statusline").setup()
 
+-- Opening files with default application + setting up oil + making oil able to also open files with default application
+local open_cmd = vim.fn.has("win32") == 1 and 'start ""' or "xdg-open"
+vim.keymap.set("n", "<leader>o", ":!" .. open_cmd .. " %<CR><CR>", { desc = "Open in default app" })
 require("oil").setup({
     columns = {
 		"icon",
@@ -82,6 +89,20 @@ require("oil").setup({
 	},
 	view_options = {
 		show_hidden = true
+	},
+	keymaps = {
+		["<leader>o"] = {
+			callback = function()
+				local oil = require("oil")
+				local entry = oil.get_cursor_entry()
+				local dir = oil.get_current_dir()
+				if entry and dir then
+					local filepath = dir .. entry.name
+					vim.fn.system(open_cmd .. ' "' .. filepath .. '"')
+				end
+			end,
+			desc = "Open with system app"
+		}
 	}
 })
 
@@ -116,6 +137,7 @@ local function toggle_diagnostics()
 end
 vim.keymap.set("n", "<leader>td", toggle_diagnostics, { desc = "Toggle diagnostics" })
 
+-- Using default vim for autocompletion
 vim.api.nvim_create_autocmd('LspAttach', {
 	group = vim.api.nvim_create_augroup('my.lsp', { clear = true }),
 	callback = function(args)
@@ -136,9 +158,7 @@ vim.api.nvim_create_autocmd('LspAttach', {
 		vim.keymap.set('n', '<leader>ca', vim.lsp.buf.code_action, opts) -- Code Action
 	end,
 })
-
 vim.opt.completeopt = { 'menu', 'menuone', 'noselect' }
-
 vim.opt.pumheight = 10
 vim.opt.updatetime = 300
 

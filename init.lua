@@ -260,59 +260,6 @@ vim.keymap.set("n", "<leader>e", ":Oil<CR>")
 vim.keymap.set("n", "<leader>f", function()
     require('mini.pick').builtin.files({ tool = 'rg' })
 end)
-
-vim.keymap.set("n", "<leader>b", function()
-    local buffers = {}
-    local bufs = vim.api.nvim_list_bufs()
-    
-    -- Get buffer info with last used time
-    for _, buf in ipairs(bufs) do
-        if vim.api.nvim_buf_is_loaded(buf) then
-            local name = vim.api.nvim_buf_get_name(buf)
-            if name ~= '' then
-                local lastused = vim.fn.getbufinfo(buf)[1].lastused
-                table.insert(buffers, {
-                    buf = buf,
-                    name = name,
-                    lastused = lastused
-                })
-            end
-        end
-    end
-    
-    -- Sort by most recently used (descending)
-    table.sort(buffers, function(a, b)
-        return a.lastused > b.lastused
-    end)
-    
-    -- Create items list
-    local items = {}
-    for _, entry in ipairs(buffers) do
-        -- Show relative path if possible
-        local display = vim.fn.fnamemodify(entry.name, ':~:.')
-        table.insert(items, display)
-    end
-    
-    -- Show picker
-    require('mini.pick').start({
-        source = {
-            items = items,
-            name = 'Buffers (MRU)',
-            choose = function(item)
-                if item then
-                    -- Find the buffer number for the selected item
-                    for _, entry in ipairs(buffers) do
-                        local display = vim.fn.fnamemodify(entry.name, ':~:.')
-                        if display == item then
-                            vim.api.nvim_set_current_buf(entry.buf)
-                            break
-                        end
-                    end
-                end
-            end,
-        },
-    })
-end, { desc = "Buffers (MRU)" })
-
+vim.keymap.set("n", "<leader>b", ":Pick buffers<CR>")
 vim.keymap.set("n", "<leader>g", ":Pick grep<CR>")
 vim.keymap.set("n", "<leader>h", ":Pick help<CR>")

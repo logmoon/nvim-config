@@ -225,6 +225,8 @@ local function pack_clean()
 end
 vim.keymap.set("n", "<leader>pc", pack_clean)
 
+vim.keymap.set("v", "/", 'y/\\V<C-R>=escape(@",\'/\\\')<CR><CR>', { desc = "Search visual selection" })
+
 vim.keymap.set({"n", "v", "x"}, "<leader>y", '"+y<CR>')
 vim.keymap.set({"n", "v", "x"}, "<leader>d", '"+d<CR>')
 

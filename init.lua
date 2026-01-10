@@ -28,6 +28,7 @@ vim.pack.add({
 	{ src="https://github.com/stevearc/oil.nvim" },
 	{ src="https://github.com/akinsho/toggleterm.nvim" },
 	{ src="https://github.com/lewis6991/gitsigns.nvim" },
+	{ src="https://github.com/HakonHarnes/img-clip.nvim" },
 	{ 
 		src="https://github.com/iamcco/markdown-preview.nvim",
 		hooks = {
@@ -68,7 +69,48 @@ require("toggleterm").setup({
 	direction = "float"
 })
 
-require("mini.pick").setup()
+require("img-clip").setup({
+    default = {
+        -- Save in the same directory as the file
+        dir_path = ".",
+        relative_to_current_file = true,
+
+        prompt_for_file_name = false, 
+		file_name = function()
+            local current_file = vim.fn.expand("%:t:r")
+            local clean_name = current_file:lower():gsub("%s+", "-"):gsub("[^%w%-]", "")
+            local time = os.date("%Y-%m-%d-%H-%M-%S")
+            return clean_name .. "-" .. time
+        end,
+    },
+    filetypes = {
+        markdown = {
+            url_encode_path = false,
+            template = "![$CURSOR]($FILE_PATH)",
+            download_images = false,
+        },
+    },
+})
+vim.keymap.set("n", "<leader>p", ":PasteImage<CR>", { desc = "Paste image from clipboard" })
+
+require("mini.pick").setup({
+    options = {
+        use_cache = true,
+    },
+    window = {
+        config = function()
+            local height = math.floor(0.618 * vim.o.lines)
+            local width = math.floor(0.618 * vim.o.columns)
+            return {
+                anchor = 'NW',
+                height = height,
+                width = width,
+                row = math.floor(0.5 * (vim.o.lines - height)),
+                col = math.floor(0.5 * (vim.o.columns - width)),
+            }
+        end,
+    },
+})
 require("mini.icons").setup()
 require("mini.pairs").setup()
 require("mini.statusline").setup()
@@ -146,16 +188,16 @@ vim.api.nvim_create_autocmd('LspAttach', {
 		end
 		
 		local opts = { buffer = bufnr, silent = true }
-		vim.keymap.set('n', 'gd', vim.lsp.buf.definition, opts)          -- Go to Definition
+		vim.keymap.set('n', 'nd', vim.lsp.buf.definition, opts)          -- Go to Definition
 		vim.keymap.set('n', 'K', vim.lsp.buf.hover, opts)                -- Hover Documentation
-		vim.keymap.set('n', 'gr', vim.lsp.buf.references, opts)          -- Go to References
+		vim.keymap.set('n', 'nr', vim.lsp.buf.references, opts)          -- Go to References
 		vim.keymap.set('n', '<leader>rn', vim.lsp.buf.rename, opts)	     -- Rename
 		vim.keymap.set('n', '<leader>ca', vim.lsp.buf.code_action, opts) -- Code Action
 	end,
 })
 vim.opt.completeopt = { 'menu', 'menuone', 'noselect' }
 vim.opt.pumheight = 10
-vim.opt.updatetime = 300
+vim.opt.updatetime = 500
 
 local function pack_clean()
 	local active_plugins = {}
@@ -214,7 +256,63 @@ end, { desc = "Previous hunk" })
 
 vim.keymap.set("n", "<leader>e", ":Oil<CR>")
 
-vim.keymap.set("n", "<leader>f", ":Pick files<CR>")
+
+vim.keymap.set("n", "<leader>f", function()
+    require('mini.pick').builtin.files({ tool = 'rg' })
+end)
+
+vim.keymap.set("n", "<leader>b", function()
+    local buffers = {}
+    local bufs = vim.api.nvim_list_bufs()
+    
+    -- Get buffer info with last used time
+    for _, buf in ipairs(bufs) do
+        if vim.api.nvim_buf_is_loaded(buf) then
+            local name = vim.api.nvim_buf_get_name(buf)
+            if name ~= '' then
+                local lastused = vim.fn.getbufinfo(buf)[1].lastused
+                table.insert(buffers, {
+                    buf = buf,
+                    name = name,
+                    lastused = lastused
+                })
+            end
+        end
+    end
+    
+    -- Sort by most recently used (descending)
+    table.sort(buffers, function(a, b)
+        return a.lastused > b.lastused
+    end)
+    
+    -- Create items list
+    local items = {}
+    for _, entry in ipairs(buffers) do
+        -- Show relative path if possible
+        local display = vim.fn.fnamemodify(entry.name, ':~:.')
+        table.insert(items, display)
+    end
+    
+    -- Show picker
+    require('mini.pick').start({
+        source = {
+            items = items,
+            name = 'Buffers (MRU)',
+            choose = function(item)
+                if item then
+                    -- Find the buffer number for the selected item
+                    for _, entry in ipairs(buffers) do
+                        local display = vim.fn.fnamemodify(entry.name, ':~:.')
+                        if display == item then
+                            vim.api.nvim_set_current_buf(entry.buf)
+                            break
+                        end
+                    end
+                end
+            end,
+        },
+    })
+end, { desc = "Buffers (MRU)" })
+
 vim.keymap.set("n", "<leader>g", ":Pick grep<CR>")
 vim.keymap.set("n", "<leader>h", ":Pick help<CR>")
-vim.keymap.set("n", "<leader>b", ":Pick buffers<CR>")

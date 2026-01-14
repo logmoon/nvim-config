@@ -65,7 +65,8 @@ require("gitsigns").setup({
 })
 
 require("toggleterm").setup({
-	open_mapping = [[<c-\>]], -- Toggle with Ctrl+\
+	open_mapping = [[<c-\>]],
+	autochdir = true,
 	direction = "float"
 })
 

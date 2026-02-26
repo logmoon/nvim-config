@@ -4,12 +4,11 @@ vim.o.number = true
 vim.o.relativenumber = true
 
 vim.o.wrap = false
--- Enable wrap for specific file types
 vim.api.nvim_create_autocmd("FileType", {
 	pattern = { "markdown", "text", "tex" },
 	callback = function()
 		vim.opt_local.wrap = true
-		vim.opt_local.linebreak = true  -- Break at word boundaries
+		vim.opt_local.linebreak = true
 	end,
 })
 
@@ -21,16 +20,21 @@ vim.o.shiftwidth = 4
 vim.o.softtabstop = 4
 vim.o.tabstop = 4
 
+vim.o.updatetime = 500
+
 vim.pack.add({
-	{ src="https://github.com/rebelot/kanagawa.nvim" },
-	{ src="https://github.com/neovim/nvim-lspconfig" },
-	{ src="https://github.com/nvim-mini/mini.nvim" },
-	{ src="https://github.com/stevearc/oil.nvim" },
-	{ src="https://github.com/akinsho/toggleterm.nvim" },
-	{ src="https://github.com/lewis6991/gitsigns.nvim" },
-	{ src="https://github.com/HakonHarnes/img-clip.nvim" },
-	{ 
-		src="https://github.com/iamcco/markdown-preview.nvim",
+	{ src = "https://github.com/rebelot/kanagawa.nvim" },
+	{ src = "https://github.com/neovim/nvim-lspconfig" },
+	{ src = "https://github.com/nvim-mini/mini.nvim" },
+	{ src = "https://github.com/stevearc/oil.nvim" },
+	{ src = "https://github.com/lewis6991/gitsigns.nvim" },
+	{ src = "https://github.com/HakonHarnes/img-clip.nvim" },
+	{
+		src = "https://github.com/saghen/blink.cmp",
+		version = vim.version.range("^1"),
+	},
+	{
+		src = "https://github.com/iamcco/markdown-preview.nvim",
 		hooks = {
 			post_install = function()
 				vim.fn["mkdp#util#install"]()
@@ -38,231 +42,295 @@ vim.pack.add({
 			post_update = function()
 				vim.fn["mkdp#util#install"]()
 			end,
-		}
+		},
 	},
 })
+
+-- ─── Colorscheme ──────────────────────────────────────────────────────────────
 
 vim.cmd.colorscheme("kanagawa-wave")
 -- vim.cmd.colorscheme("kanagawa-dragon")
 
+-- ─── Gitsigns ─────────────────────────────────────────────────────────────────
+
 require("gitsigns").setup({
 	signs = {
-		add          = { text = '+' },
-		change       = { text = '│' },
-		delete       = { text = '_' },
-		topdelete    = { text = '‾' },
-		changedelete = { text = '~' },
-		untracked    = { text = '┆' },
+		add          = { text = "+" },
+		change       = { text = "│" },
+		delete       = { text = "_" },
+		topdelete    = { text = "‾" },
+		changedelete = { text = "~" },
+		untracked    = { text = "┆" },
 	},
 	signs_staged = {
-		add          = { text = '+' },
-		change       = { text = '│' },
-		delete       = { text = '_' },
-		topdelete    = { text = '‾' },
-		changedelete = { text = '~' },
-		untracked    = { text = '┆' },
-	}
+		add          = { text = "+" },
+		change       = { text = "│" },
+		delete       = { text = "_" },
+		topdelete    = { text = "‾" },
+		changedelete = { text = "~" },
+		untracked    = { text = "┆" },
+	},
 })
 
-require("toggleterm").setup({
-	open_mapping = [[<c-\>]],
-	autochdir = true,
-	direction = "float"
-})
+-- ─── Float terminal ───────────────────────────────────────────────────────────
+
+local term_buf = nil
+local term_win = nil
+
+local function toggle_terminal()
+	if term_win and vim.api.nvim_win_is_valid(term_win) then
+		vim.api.nvim_win_hide(term_win)
+		term_win = nil
+		return
+	end
+
+	local width  = math.floor(vim.o.columns * 0.8)
+	local height = math.floor(vim.o.lines * 0.8)
+
+	if not term_buf or not vim.api.nvim_buf_is_valid(term_buf) then
+		term_buf = vim.api.nvim_create_buf(false, true)
+	end
+
+	term_win = vim.api.nvim_open_win(term_buf, true, {
+		relative = "editor",
+		width    = width,
+		height   = height,
+		row      = math.floor((vim.o.lines - height) / 2),
+		col      = math.floor((vim.o.columns - width) / 2),
+		style    = "minimal",
+		border   = "rounded",
+	})
+
+	-- Only start the terminal process once per buffer
+	if vim.bo[term_buf].buftype ~= "terminal" then
+		vim.cmd("terminal")
+		-- After :terminal, nvim creates a new buf; grab it
+		term_buf = vim.api.nvim_get_current_buf()
+	end
+
+	vim.cmd("startinsert")
+end
+
+vim.keymap.set({ "n", "t" }, [[<C-\>]], toggle_terminal, { desc = "Toggle terminal" })
+vim.keymap.set("t", "<Esc><Esc>", "<C-\\><C-n>", { desc = "Exit terminal mode" })
+
+-- ─── img-clip ─────────────────────────────────────────────────────────────────
 
 require("img-clip").setup({
-    default = {
-        -- Save in the same directory as the file
-        dir_path = ".",
-        relative_to_current_file = true,
-
-        prompt_for_file_name = false, 
+	default = {
+		dir_path = ".",
+		relative_to_current_file = true,
+		prompt_for_file_name = false,
 		file_name = function()
-            local current_file = vim.fn.expand("%:t:r")
-            local clean_name = current_file:lower():gsub("%s+", "-"):gsub("[^%w%-]", "")
-            local time = os.date("%Y-%m-%d-%H-%M-%S")
-            return clean_name .. "-" .. time
-        end,
-    },
-    filetypes = {
-        markdown = {
-            url_encode_path = false,
-            template = "![$CURSOR]($FILE_PATH)",
-            download_images = false,
-        },
-    },
+			local current_file = vim.fn.expand("%:t:r")
+			local clean_name = current_file:lower():gsub("%s+", "-"):gsub("[^%w%-]", "")
+			local time = os.date("%Y-%m-%d-%H-%M-%S")
+			return clean_name .. "-" .. time
+		end,
+	},
+	filetypes = {
+		markdown = {
+			url_encode_path = false,
+			template = "![$CURSOR]($FILE_PATH)",
+			download_images = false,
+		},
+	},
 })
 vim.keymap.set("n", "<leader>p", ":PasteImage<CR>", { desc = "Paste image from clipboard" })
 
+-- ─── mini.nvim ────────────────────────────────────────────────────────────────
+
 require("mini.pick").setup({
-    options = {
-        use_cache = true,
-    },
-    window = {
-        config = function()
-            local height = math.floor(0.618 * vim.o.lines)
-            local width = math.floor(0.618 * vim.o.columns)
-            return {
-                anchor = 'NW',
-                height = height,
-                width = width,
-                row = math.floor(0.5 * (vim.o.lines - height)),
-                col = math.floor(0.5 * (vim.o.columns - width)),
-            }
-        end,
-    },
+	options = { use_cache = true },
+	window = {
+		config = function()
+			local height = math.floor(0.618 * vim.o.lines)
+			local width  = math.floor(0.618 * vim.o.columns)
+			return {
+				anchor = "NW",
+				height = height,
+				width  = width,
+				row    = math.floor(0.5 * (vim.o.lines - height)),
+				col    = math.floor(0.5 * (vim.o.columns - width)),
+			}
+		end,
+	},
 })
 require("mini.icons").setup()
 require("mini.pairs").setup()
 require("mini.statusline").setup()
 
--- Opening files with default application + setting up oil + making oil able to also open files with default application
+-- ─── Oil ──────────────────────────────────────────────────────────────────────
+
 local open_cmd = vim.fn.has("win32") == 1 and 'start ""' or "xdg-open"
 vim.keymap.set("n", "<leader>o", ":!" .. open_cmd .. " %<CR><CR>", { desc = "Open in default app" })
+
 require("oil").setup({
-    columns = {
-		"icon",
-		"permissions",
-		"size",
-	},
-	view_options = {
-		show_hidden = true
-	},
+	columns = { "icon", "permissions", "size" },
+	view_options = { show_hidden = true },
 	keymaps = {
 		["<leader>o"] = {
 			callback = function()
-				local oil = require("oil")
+				local oil   = require("oil")
 				local entry = oil.get_cursor_entry()
-				local dir = oil.get_current_dir()
+				local dir   = oil.get_current_dir()
 				if entry and dir then
-					local filepath = dir .. entry.name
-					vim.fn.system(open_cmd .. ' "' .. filepath .. '"')
+					vim.fn.system(open_cmd .. ' "' .. dir .. entry.name .. '"')
 				end
 			end,
-			desc = "Open with system app"
-		}
-	}
+			desc = "Open with system app",
+		},
+	},
 })
 
--- LSP Server configs: https://github.com/neovim/nvim-lspconfig/blob/master/doc/configs.md
-local servers = { "clangd", "lua_ls", "pyright" }
+-- ─── LSP ──────────────────────────────────────────────────────────────────────
+
+-- Server configs: https://github.com/neovim/nvim-lspconfig/blob/master/doc/configs.md
+local servers = { "clangd", "lua_ls", "pyright", "gdscript", "gdshader_lsp" }
 vim.lsp.enable(servers)
 
--- Disable diagnostics by default cuz they piss me off
 vim.diagnostic.config({
-	virtual_text = false,
-	signs = false,
-	underline = false,
+	virtual_text  = true,
+	signs         = true,
+	underline     = true,
 	update_in_insert = false,
 })
 
-local diagnostics_active = false
-local function toggle_diagnostics()
-	diagnostics_active = not diagnostics_active
-	if diagnostics_active then
-		vim.diagnostic.config({
-			virtual_text = true,
-			signs = true,
-			underline = true,
-		})
-	else
-		vim.diagnostic.config({
-			virtual_text = false,
-			signs = false,
-			underline = false,
-		})
-	end
-end
-vim.keymap.set("n", "<leader>td", toggle_diagnostics, { desc = "Toggle diagnostics" })
+-- Disable diagnostics for C/C++ by default; use <leader>td to toggle
+local cpp_diagnostics_state = {}
 
--- Using default vim for autocompletion
-vim.api.nvim_create_autocmd('LspAttach', {
-	group = vim.api.nvim_create_augroup('my.lsp', { clear = true }),
+vim.api.nvim_create_autocmd("LspAttach", {
 	callback = function(args)
 		local client = vim.lsp.get_client_by_id(args.data.client_id)
-		if not client then return end
-		
-		local bufnr = args.buf
-		
-		if client.server_capabilities.completionProvider then
-			vim.lsp.completion.enable(true, client.id, bufnr, { autotrigger = true })
+		if client and client.name == "clangd" then
+			local bufnr = args.buf
+			cpp_diagnostics_state[bufnr] = false
+			vim.diagnostic.config({
+				virtual_text = false,
+				signs        = false,
+				underline    = false,
+			}, vim.lsp.diagnostic.get_namespace(client.id))
 		end
-		
-		local opts = { buffer = bufnr, silent = true }
-		vim.keymap.set('n', 'nd', vim.lsp.buf.definition, opts)          -- Go to Definition
-		vim.keymap.set('n', 'K', vim.lsp.buf.hover, opts)                -- Hover Documentation
-		vim.keymap.set('n', 'nr', vim.lsp.buf.references, opts)          -- Go to References
-		vim.keymap.set('n', '<leader>rn', vim.lsp.buf.rename, opts)	     -- Rename
-		vim.keymap.set('n', '<leader>ca', vim.lsp.buf.code_action, opts) -- Code Action
 	end,
 })
-vim.opt.completeopt = { 'menu', 'menuone', 'noselect' }
-vim.opt.pumheight = 10
-vim.opt.updatetime = 500
 
-local function pack_clean()
-	local active_plugins = {}
-	local unused_plugins = {}
+local function toggle_diagnostics()
+	local bufnr  = vim.api.nvim_get_current_buf()
+	local clients = vim.lsp.get_clients({ bufnr = bufnr })
 
-	for _, plugin in ipairs(vim.pack.get()) do
-		active_plugins[plugin.spec.name] = plugin.active
-	end
-
-	for _, plugin in ipairs(vim.pack.get()) do
-		if not active_plugins[plugin.spec.name] then
-			table.insert(unused_plugins, plugin.spec.name)
+	local clangd_client = nil
+	for _, client in ipairs(clients) do
+		if client.name == "clangd" then
+			clangd_client = client
+			break
 		end
 	end
 
-	if #unused_plugins == 0 then
-		print("No unused plugins.")
+	if not clangd_client then
+		print("Toggle diagnostics only works for C/C++ files")
 		return
 	end
 
-	local choice = vim.fn.confirm("Remove unused plugins?", "&Yes\n&No", 2)
-	if choice == 1 then
-		vim.pack.del(unused_plugins)
+	cpp_diagnostics_state[bufnr] = not cpp_diagnostics_state[bufnr]
+	local ns = vim.lsp.diagnostic.get_namespace(clangd_client.id)
+
+	if cpp_diagnostics_state[bufnr] then
+		vim.diagnostic.config({ virtual_text = true, signs = true, underline = true }, ns)
+	else
+		vim.diagnostic.config({ virtual_text = false, signs = false, underline = false }, ns)
 	end
 end
-vim.keymap.set("n", "<leader>pc", pack_clean)
+
+vim.keymap.set("n", "<leader>td", toggle_diagnostics, { desc = "Toggle diagnostics (C/C++)" })
+
+-- LSP keymaps
+vim.api.nvim_create_autocmd("LspAttach", {
+	group = vim.api.nvim_create_augroup("my.lsp", { clear = true }),
+	callback = function(args)
+		local client = vim.lsp.get_client_by_id(args.data.client_id)
+		if not client then return end
+
+		local opts = { buffer = args.buf, silent = true }
+		vim.keymap.set("n", "nd",         vim.lsp.buf.definition,  opts)
+		vim.keymap.set("n", "K",          vim.lsp.buf.hover,        opts)
+		vim.keymap.set("n", "nr",         vim.lsp.buf.references,   opts)
+		vim.keymap.set("n", "<leader>rn", vim.lsp.buf.rename,       opts)
+		vim.keymap.set("n", "<leader>ca", vim.lsp.buf.code_action,  opts)
+	end,
+})
+
+-- ─── blink.cmp ────────────────────────────────────────────────────────────────
+
+require("blink.cmp").setup({
+	keymap = { preset = "default" },  -- C-y accept, C-n/C-p navigate, C-e dismiss
+	appearance = {
+		nerd_font_variant = "mono",
+	},
+	completion = {
+		documentation = { auto_show = true },
+	},
+	sources = {
+		default = { "lsp", "path", "buffer" },
+	},
+	fuzzy = { implementation = "prefer_rust_with_warning" },
+})
+
+vim.opt.pumheight = 10
+
+-- ─── Keymaps ──────────────────────────────────────────────────────────────────
 
 vim.keymap.set("v", "/", 'y/\\V<C-R>=escape(@",\'/\\\')<CR><CR>', { desc = "Search visual selection" })
 
-vim.keymap.set({"n", "v", "x"}, "<leader>y", '"+y<CR>')
-vim.keymap.set({"n", "v", "x"}, "<leader>d", '"+d<CR>')
+vim.keymap.set({ "n", "v", "x" }, "<leader>y", '"+y<CR>')
+vim.keymap.set({ "n", "v", "x" }, "<leader>d", '"+d<CR>')
 
-vim.keymap.set("n", "<leader>mp", ":MarkdownPreview<CR>", { desc = "Markdown preview" })
+vim.keymap.set("n", "<leader>mp", ":MarkdownPreview<CR>",  { desc = "Markdown preview" })
 
--- For formatting, just in case I want it on for some reason
--- vim.keymap.set("n", "<leader>lf", vim.lsp.buf.format)
-
--- More gitsigns shit here: https://github.com/lewis6991/gitsigns.nvim?tab=readme-ov-file#-keymaps
+-- Gitsigns
 vim.keymap.set("n", "<leader>hs", ":Gitsigns stage_hunk<CR>")
 vim.keymap.set("n", "<leader>hr", ":Gitsigns reset_hunk<CR>")
 vim.keymap.set("n", "<leader>hS", ":Gitsigns stage_buffer<CR>")
 vim.keymap.set("n", "<leader>hR", ":Gitsigns reset_buffer<CR>")
 vim.keymap.set("n", "<leader>hp", ":Gitsigns preview_hunk_inline<CR>")
 vim.keymap.set("n", "]c", function()
-	if vim.wo.diff then
-		vim.cmd.normal({']c', bang = true})
-	else
-		require('gitsigns').nav_hunk('next')
-	end
+	if vim.wo.diff then vim.cmd.normal({ "]c", bang = true })
+	else require("gitsigns").nav_hunk("next") end
 end, { desc = "Next hunk" })
 vim.keymap.set("n", "[c", function()
-	if vim.wo.diff then
-		vim.cmd.normal({'[c', bang = true})
-	else
-		require('gitsigns').nav_hunk('prev')
-	end
+	if vim.wo.diff then vim.cmd.normal({ "[c", bang = true })
+	else require("gitsigns").nav_hunk("prev") end
 end, { desc = "Previous hunk" })
 
+-- Oil / file navigation
 vim.keymap.set("n", "<leader>e", ":Oil<CR>")
 
-
+-- mini.pick
 vim.keymap.set("n", "<leader>f", function()
-    require('mini.pick').builtin.files({ tool = 'rg' })
+	require("mini.pick").builtin.files({ tool = "rg" })
 end)
 vim.keymap.set("n", "<leader>b", ":Pick buffers<CR>")
 vim.keymap.set("n", "<leader>g", ":Pick grep<CR>")
 vim.keymap.set("n", "<leader>h", ":Pick help<CR>")
+
+-- ─── Pack clean ───────────────────────────────────────────────────────────────
+
+local function pack_clean()
+	local active  = {}
+	local unused  = {}
+	for _, plugin in ipairs(vim.pack.get()) do
+		active[plugin.spec.name] = plugin.active
+	end
+	for _, plugin in ipairs(vim.pack.get()) do
+		if not active[plugin.spec.name] then
+			table.insert(unused, plugin.spec.name)
+		end
+	end
+	if #unused == 0 then
+		print("No unused plugins.")
+		return
+	end
+	local choice = vim.fn.confirm("Remove unused plugins?", "&Yes\n&No", 2)
+	if choice == 1 then vim.pack.del(unused) end
+end
+
+vim.keymap.set("n", "<leader>pc", pack_clean, { desc = "Pack clean" })

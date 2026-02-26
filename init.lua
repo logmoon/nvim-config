@@ -28,6 +28,7 @@ vim.pack.add({
 	{ src = "https://github.com/nvim-mini/mini.nvim" },
 	{ src = "https://github.com/stevearc/oil.nvim" },
 	{ src = "https://github.com/lewis6991/gitsigns.nvim" },
+	{ src = "https://github.com/akinsho/toggleterm.nvim" },
 	{ src = "https://github.com/HakonHarnes/img-clip.nvim" },
 	{
 		src = "https://github.com/saghen/blink.cmp",
@@ -72,47 +73,13 @@ require("gitsigns").setup({
 	},
 })
 
--- ─── Float terminal ───────────────────────────────────────────────────────────
+-- ─── Toggleterm ───────────────────────────────────────────────────────────────
 
-local term_buf = nil
-local term_win = nil
-
-local function toggle_terminal()
-	if term_win and vim.api.nvim_win_is_valid(term_win) then
-		vim.api.nvim_win_hide(term_win)
-		term_win = nil
-		return
-	end
-
-	local width  = math.floor(vim.o.columns * 0.8)
-	local height = math.floor(vim.o.lines * 0.8)
-
-	if not term_buf or not vim.api.nvim_buf_is_valid(term_buf) then
-		term_buf = vim.api.nvim_create_buf(false, true)
-	end
-
-	term_win = vim.api.nvim_open_win(term_buf, true, {
-		relative = "editor",
-		width    = width,
-		height   = height,
-		row      = math.floor((vim.o.lines - height) / 2),
-		col      = math.floor((vim.o.columns - width) / 2),
-		style    = "minimal",
-		border   = "rounded",
-	})
-
-	-- Only start the terminal process once per buffer
-	if vim.bo[term_buf].buftype ~= "terminal" then
-		vim.cmd("terminal")
-		-- After :terminal, nvim creates a new buf; grab it
-		term_buf = vim.api.nvim_get_current_buf()
-	end
-
-	vim.cmd("startinsert")
-end
-
-vim.keymap.set({ "n", "t" }, [[<C-\>]], toggle_terminal, { desc = "Toggle terminal" })
-vim.keymap.set("t", "<Esc><Esc>", "<C-\\><C-n>", { desc = "Exit terminal mode" })
+require("toggleterm").setup({
+	open_mapping = [[<c-\>]],
+	autochdir    = true,
+	direction    = "float",
+})
 
 -- ─── img-clip ─────────────────────────────────────────────────────────────────
 
@@ -262,7 +229,14 @@ vim.api.nvim_create_autocmd("LspAttach", {
 -- ─── blink.cmp ────────────────────────────────────────────────────────────────
 
 require("blink.cmp").setup({
-	keymap = { preset = "default" },  -- C-y accept, C-n/C-p navigate, C-e dismiss
+	keymap = {
+		preset = "default",
+		["<C-]>"] = { function(cmp)
+			cmp.hide()
+			vim.lsp.buf.definition()
+			return true
+		end },
+	},
 	appearance = {
 		nerd_font_variant = "mono",
 	},

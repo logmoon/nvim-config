@@ -288,4 +288,4 @@ vim.keymap.set("n", "<leader>pc", pack_clean)
 
 -- ─── Base ─────────────────────────────────────────────────────────────────────
 
-dofile(vim.fn.expand("~/base/tools/nvim/base.lua"))
+dofile(vim.fn.expand("~/base/tools/nvim/lua/loader.lua"))
